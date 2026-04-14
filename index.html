@@ -473,7 +473,18 @@
             depotGroup.add(door);
 
             // Depot Sign
-            const signGeo = new THREE.BoxGe            // Player (Roblox Style)
+            const signGeo = new THREE.BoxGeometry(5, 1.5, 0.5);
+            const signMat = new THREE.MeshPhongMaterial({ color: 0xffc107 });
+            const sign = new THREE.Mesh(signGeo, signMat);
+            sign.position.set(0, 5.5, 4);
+            const depotLabel = createNametag("DEPOT", 1.2);
+            depotLabel.position.set(0, 6.5, 4.1);
+            depotGroup.add(depotLabel);
+
+            depotGroup.position.set(0, 0, 0);
+            scene.add(depotGroup);
+
+            // Player (Roblox Style)
             playerGroup = new THREE.Group();
             
             // Body (Torso)
@@ -527,7 +538,7 @@
             visor.position.set(0, 2.85, 0.6);
             playerGroup.add(visor);
 
-            // Nametag
+            // Nametag function defined earlier (moved up if needed, but let's assume it's okay)
             function createNametag(text, scale = 1.0) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 512;
@@ -594,17 +605,6 @@
                 mesh: playerGroup, 
                 vx: 0, vz: 0, 
                 speed: 0.15, speedMult: 1, 
-                carrying: false,
-                lLeg: lLeg, rLeg: rLeg 
-            };
-0.8, 1.2, 0);
-            playerGroup.add(rainbowGroup);
-
-            scene.add(playerGroup);
-            player = { 
-                mesh: playerGroup, 
-                vx: 0, vz: 0, 
-                speed: 0.12, speedMult: 1, 
                 carrying: false,
                 lLeg: lLeg, rLeg: rLeg 
             };
