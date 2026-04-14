@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StealABrainRot - TSUNAMI 3D ULTRA</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #020205;
+            font-family: 'Outfit', sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ── HUD ───────────────────────────────────────────────── */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 35px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 35px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.45);
+            font-weight: 700;
+        }
+
+        .hud-value {
+            font-size: 32px;
+            font-weight: 900;
+        }
+
+        #gold-value { color: #ffc107; }
+        #round-value { color: #00f2ff; }
+
+        #warning {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 60, 0.9);
+            color: white;
+            padding: 15px 40px;
+            font-weight: 900;
+            font-size: 24px;
+            border-radius: 10px;
+            letter-spacing: 5px;
+            display: none;
+            animation: pulse 0.5s infinite alternate;
+            z-index: 101;
+        }
+
+        #safe-status {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 255, 100, 0.8);
+            color: black;
+            padding: 10px 30px;
+            font-weight: 900;
+            border-radius: 20px;
+            display: none;
+            z-index: 102;
+        }
+
+        #region-display {
+            position: absolute;
+            top: 100px;
+            right: 30px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border-left: 5px solid #00f2ff;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            z-index: 100;
+        }
+
+        #harvest-ui {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            z-index: 105;
+        }
+
+        .progress-ring {
+            width: 80px;
+            height: 80px;
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.1s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            stroke: #00f2ff;
+            stroke-width: 8;
+            fill: transparent;
+            r: 32;
+            cx: 40;
+            cy: 40;
+        }
+
+        .progress-ring__background {
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 8;
+            fill: transparent;
+            r: 32;
+            cx: 40;
+            cy: 40;
+        }
+
+        @keyframes pulse { from { opacity: 0.5; background: #900; } to { opacity: 1; background: #f03c; } }
+
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,5,0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            text-align: center;
+        }
+
+        .btn {
+            background: #ff00ea;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 20px;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+            box-shadow: 0 0 30px rgba(255,0,234,0.4);
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="hud-item">
+            <span class="hud-label">Gold</span>
+            <span id="gold-value" class="hud-value" style="color: #ffaa00; text-shadow: 2px 2px 0 #000;">0</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Wave</span>
+            <span id="round-value" class="hud-value" style="color: #00a2ff; text-shadow: 2px 2px 0 #000;">1</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Lives</span>
+            <span id="lives-value" class="hud-value" style="color: #ff0000; text-shadow: 2px 2px 0 #000;">5</span>
+        </div>
+    </div>
+
+    <div id="teleport-msg" style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); color: #ff8800; font-size: 40px; font-weight: 900; text-shadow: 3px 3px 0 #5a2d0c; z-index: 110; display: none;">
+        Teleporting to classic mode..
+    </div>
+
+    <div id="item-slot" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 80px; height: 80px; background: rgba(0,0,0,0.5); border: 4px solid #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; z-index: 100;">
+        <div id="item-icon" style="font-size: 40px;">🏏</div>
+        <div style="position: absolute; bottom: 5px; right: 5px; color: white; font-weight: 900; font-size: 20px;">1</div>
+    </div>
+
+    <div id="shop-prompt" style="position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); background: #ffaa00; padding: 15px 30px; border-radius: 0; border: 4px solid #5a2d0c; display: none; z-index: 102; text-align: center; color: white; text-shadow: 1px 1px 0 #000;">
+        <div style="font-weight: 900; margin-bottom: 5px; font-size: 20px;">MARKET OPEN</div>
+        <div style="font-size: 14px;">[E]: 2x Speed (500G)</div>
+        <div style="font-size: 14px;">[Q]: +1 Life (1000G)</div>
+    </div>
+
+    <div id="inventory-display" style="position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); font-weight: 900; font-size: 20px; text-shadow: 2px 2px 0 #000;"></div>
+
+    <div id="warning">TSUNAMI WARNING</div>
+    <div id="safe-status">UNDERGROUND - SAFE!</div>
+    <div id="region-display">Region: <span>Common</span></div>
+
+    <div id="harvest-ui">
+        <svg class="progress-ring">
+            <circle class="progress-ring__background" />
+            <circle id="harvest-circle" class="progress-ring__circle" stroke-dasharray="201.06" stroke-dashoffset="201.06" />
+        </svg>
+        <div style="font-weight: 900; margin-top: 5px; color: #00f2ff; font-size: 14px; text-shadow: 0 0 10px rgba(0,242,255,0.5);">STEALING...</div>
+    </div>
+
+    <div id="startScreen">
+        <h1 style="font-size: 60px; margin-bottom: 0;">STEALABRAINROT 3D</h1>
+        <p style="opacity: 0.6; margin-bottom: 30px;">Dodge the Tsunami, Collect the Rot!</p>
+        <button class="btn" id="startBtn">Play 3D</button>
+    </div>
+
+    <div id="gameOverScreen" class="hidden">
+        <h1 style="color: #ff003c; font-size: 60px;">GAME OVER</h1>
+        <p id="final-score"></p>
+        <button class="btn" id="retryBtn">Retry</button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <!-- Three.js Library -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // ── CONFIG ──────────────────────────────────────────────────
+        let scene, camera, renderer, player, playerGroup, controls;
+        let ground, path, tsunami;
+        let brainrots = [];
+        let keys = {};
+        let gameRunning = false;
+        let walkCycle = 0;
+        let harvestingItem = null;
+        let harvestTimer = 0;
+        const HARVEST_TIME = 300; // 5 seconds at 60fps
+        let gold = 0;
+        let round = 1;
+        let lives = 5;
+        let tsunamiTimer = 0;
+        let tsunamiActive = false;
+        let holes = [];
+        let TSUNAMI_INTERVAL = 1200; // Slower interval
+        const WORLD_SIZE = 150;
+        let shops = [];
+
+        const RARITIES = [
+            { name: "Common",     val: 10,   color: 0x888888, zMin: 0,   zMax: 15 },
+            { name: "Rare",       val: 50,   color: 0x00b3ff, zMin: 15,  zMax: 40 },
+            { name: "Brainrot God",val: 1000, color: 0xa200ff, zMin: 40,  zMax: 75 },
+            { name: "Celestial",  val: 5000, color: 0xffffff, zMin: 75,  zMax: 150 }
+        ];
+
+        // ── INIT ────────────────────────────────────────────────────
+        function init() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 15, 20);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 100;
+            controls.enablePan = false; 
+            controls.maxPolarAngle = Math.PI / 2.1; 
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(50, 100, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.left = -WORLD_SIZE;
+            sunLight.shadow.camera.right = WORLD_SIZE;
+            sunLight.shadow.camera.top = WORLD_SIZE;
+            sunLight.shadow.camera.bottom = -WORLD_SIZE;
+            scene.add(sunLight);
+
+            // Skybox / Background
+            scene.background = new THREE.Color(0x40a0ff); 
+            
+            // Simple Atmosphere
+            const vertexShader = `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+                }
+            `;
+            const fragmentShader = `
+                uniform vec3 topColor;
+                uniform vec3 bottomColor;
+                uniform float offset;
+                uniform float exponent;
+                varying vec3 vWorldPosition;
+                void main() {
+                    float h = normalize( vWorldPosition + offset ).y;
+                    gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h, 0.0 ), exponent ), 0.0 ) ), 1.0 );
+                }
+            `;
+            const uniforms = {
+                topColor: { value: new THREE.Color( 0x0077ff ) },
+                bottomColor: { value: new THREE.Color( 0x88ccff ) },
+                offset: { value: 33 },
+                exponent: { value: 0.6 }
+            };
+            const skyGeo = new THREE.SphereGeometry( 400, 32, 15 );
+            const skyMat = new THREE.ShaderMaterial( {
+                uniforms: uniforms,
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                side: THREE.BackSide
+            } );
+            const sky = new THREE.Mesh( skyGeo, skyMat );
+            scene.add( sky );
+
+            // Clouds
+            function createCloud(x, y, z) {
+                const cloud = new THREE.Group();
+                const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+                for(let i=0; i<5; i++) {
+                    const geo = new THREE.SphereGeometry(2 + Math.random() * 2, 8, 8);
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(i*2 - 4, Math.random() * 1, Math.random() * 2);
+                    mesh.scale.y = 0.6;
+                    cloud.add(mesh);
+                }
+                cloud.position.set(x, y, z);
+                scene.add(cloud);
+                return cloud;
+            }
+            for(let i=0; i<20; i++) {
+                createCloud((Math.random()-0.5)*400, 50 + Math.random()*30, (Math.random()-0.5)*400);
+            }
+
+            // Create Checkerboard Texture
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const context = canvas.getContext('2d');
+            const colors = ['#91cf3e', '#77bc2a']; // Roblox green grass colors
+            const step = size / 2;
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 2; j++) {
+                    context.fillStyle = colors[(i + j) % 2];
+                    context.fillRect(i * step, j * step, step, step);
+                }
+            }
+            // Add subtle border to each tile
+            context.strokeStyle = 'rgba(0,0,0,0.05)';
+            context.lineWidth = 2;
+            context.strokeRect(0, 0, step, step);
+            context.strokeRect(step, 0, step, step);
+            context.strokeRect(0, step, step, step);
+            context.strokeRect(step, step, step, step);
+
+            const groundTexture = new THREE.CanvasTexture(canvas);
+            groundTexture.wrapS = THREE.RepeatWrapping;
+            groundTexture.wrapT = THREE.RepeatWrapping;
+            groundTexture.repeat.set(60, 60);
+
+            // Ground (Checkerboard Grass)
+            const groundGeo = new THREE.PlaneGeometry(300, 300);
+            const groundMat = new THREE.MeshLambertMaterial({ map: groundTexture });
+            ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Walls (Brown Checkerboard like the image)
+            const wallTexCanvas = document.createElement('canvas');
+            wallTexCanvas.width = 128;
+            wallTexCanvas.height = 128;
+            const wallCtx = wallTexCanvas.getContext('2d');
+            const wallColors = ['#a0522d', '#8b4513'];
+            const wallStep = 64;
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 2; j++) {
+                    wallCtx.fillStyle = wallColors[(i + j) % 2];
+                    wallCtx.fillRect(i * wallStep, j * wallStep, wallStep, wallStep);
+                }
+            }
+            const wallTexture = new THREE.CanvasTexture(wallTexCanvas);
+            wallTexture.wrapS = THREE.RepeatWrapping;
+            wallTexture.wrapT = THREE.RepeatWrapping;
+            wallTexture.repeat.set(10, 1);
+
+            const wallGeo = new THREE.BoxGeometry(300, 40, 5);
+            const wallMat = new THREE.MeshLambertMaterial({ map: wallTexture });
+            
+            const wallLeft = new THREE.Mesh(wallGeo, wallMat);
+            wallLeft.position.set(-150, 20, 0);
+            wallLeft.rotation.y = Math.PI / 2;
+            scene.add(wallLeft);
+
+            const wallRight = new THREE.Mesh(wallGeo, wallMat);
+            wallRight.position.set(150, 20, 0);
+            wallRight.rotation.y = -Math.PI / 2;
+            scene.add(wallRight);
+
+            const wallBack = new THREE.Mesh(wallGeo, wallMat);
+            wallBack.position.set(0, 20, -150);
+            scene.add(wallBack);
+
+            // Depot (Base) - Made smaller/shorter
+            const depotGroup = new THREE.Group();
+            
+            // Walls
+            const houseGeo = new THREE.BoxGeometry(8, 4, 8);
+            const houseMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
+            const house = new THREE.Mesh(houseGeo, houseMat);
+            house.position.y = 2;
+            house.castShadow = true;
+            house.receiveShadow = true;
+            depotGroup.add(house);
+
+            // Roof
+            const roofGeo = new THREE.BoxGeometry(10, 1, 10);
+            const roofMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 4.5;
+            depotGroup.add(roof);
+
+            // Glowing Entrance
+            const doorGeo = new THREE.BoxGeometry(4, 3, 1);
+            const doorMat = new THREE.MeshPhongMaterial({ color: 0xff00ea, emissive: 0xff00ea, emissiveIntensity: 0.8, transparent: true, opacity: 0.8 });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            door.position.set(0, 1.5, 4.1);
+            depotGroup.add(door);
+
+            // Depot Sign
+            const signGeo = new THREE.BoxGeometry(5, 1.5, 0.5);
+            const signMat = new THREE.MeshPhongMaterial({ color: 0xffc107 });
+            const sign = new THREE.Mesh(signGeo, signMat);
+            sign.position.set(0, 5.5, 4);
+            depotGroup.add(sign);
+
+            depotGroup.position.set(0, 0, 0);
+            scene.add(depotGroup);
+
+            // Player (Roblox Style)
+            playerGroup = new THREE.Group();
+            
+            // Body (Torso)
+            const bodyGeo = new THREE.BoxGeometry(1.2, 1.4, 0.6);
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0x222222 }); // Black shirt
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.4;
+            body.castShadow = true;
+            playerGroup.add(body);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const headMat = new THREE.MeshLambertMaterial({ color: 0xffdbac }); // Skin color
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.5;
+            head.castShadow = true;
+            playerGroup.add(head);
+
+            // Eyes (Simple Roblox eyes)
+            const eyeGeo = new THREE.CircleGeometry(0.12, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+            lEye.position.set(-0.2, 2.55, 0.41);
+            playerGroup.add(lEye);
+
+            const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rEye.position.set(0.2, 2.55, 0.41);
+            playerGroup.add(rEye);
+
+            // Mouth
+            const mouthGeo = new THREE.TorusGeometry(0.1, 0.03, 8, 16, Math.PI);
+            const mouthMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const mouth = new THREE.Mesh(mouthGeo, mouthMat);
+            mouth.position.set(0, 2.3, 0.41);
+            mouth.rotation.x = Math.PI;
+            playerGroup.add(mouth);
+
+            // Cap (Hat)
+            const capBaseGeo = new THREE.BoxGeometry(0.9, 0.3, 0.9);
+            const capMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+            const capBase = new THREE.Mesh(capBaseGeo, capMat);
+            capBase.position.y = 2.95;
+            playerGroup.add(capBase);
+
+            const visorGeo = new THREE.BoxGeometry(0.9, 0.05, 0.6);
+            const visor = new THREE.Mesh(visorGeo, capMat);
+            visor.position.set(0, 2.85, 0.6);
+            playerGroup.add(visor);
+
+            // Legs (Shorts)
+            const legGeo = new THREE.BoxGeometry(0.5, 0.8, 0.5);
+            const pantsMat = new THREE.MeshLambertMaterial({ color: 0x244da0 }); // Blue shorts
+            const skinLegMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            
+            const lLeg = new THREE.Group();
+            const lShorts = new THREE.Mesh(legGeo, pantsMat);
+            lShorts.position.y = 0.5;
+            lLeg.add(lShorts);
+            const lSkin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.45), skinLegMat);
+            lSkin.position.y = 0;
+            lLeg.add(lSkin);
+            lLeg.position.set(-0.35, 0.4, 0);
+            playerGroup.add(lLeg);
+
+            const rLeg = new THREE.Group();
+            const rShorts = new THREE.Mesh(legGeo, pantsMat);
+            rShorts.position.y = 0.5;
+            rLeg.add(rShorts);
+            const rSkin = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.4, 0.45), skinLegMat);
+            rSkin.position.y = 0;
+            rLeg.add(rSkin);
+            rLeg.position.set(0.35, 0.4, 0);
+            playerGroup.add(rLeg);
+
+            // Rainbow Item (like the image)
+            const rainbowGroup = new THREE.Group();
+            const rainbowColors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082, 0x8f00ff];
+            rainbowColors.forEach((color, i) => {
+                const ringGeo = new THREE.TorusGeometry(0.4 + i*0.05, 0.02, 8, 16, Math.PI);
+                const ringMat = new THREE.MeshBasicMaterial({ color: color });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.z = Math.PI / 2;
+                rainbowGroup.add(ring);
+            });
+            rainbowGroup.position.set(0.8, 1.2, 0);
+            playerGroup.add(rainbowGroup);
+
+            scene.add(playerGroup);
+            player = { 
+                mesh: playerGroup, 
+                vx: 0, vz: 0, 
+                speed: 0.12, speedMult: 1, 
+                carrying: false,
+                lLeg: lLeg, rLeg: rLeg 
+            };
+
+            // Tsunami (Curved Wave)
+            const tsunamiGroup = new THREE.Group();
+            
+            // Main Wave Body (Bowed shape)
+            const waveGeo = new THREE.CylinderGeometry(25, 25, 300, 32, 1, false, 0, Math.PI);
+            const waveMat = new THREE.MeshPhongMaterial({ 
+                color: 0x0064ff, 
+                transparent: true, 
+                opacity: 0.75,
+                side: THREE.DoubleSide
+            });
+            const waveMain = new THREE.Mesh(waveGeo, waveMat);
+            // Rotate to span across X axis and face +Z
+            waveMain.rotation.z = Math.PI / 2;
+            waveMain.position.y = 10;
+            tsunamiGroup.add(waveMain);
+
+            // Wave Crest (Foam)
+            const crestGeo = new THREE.BoxGeometry(300, 0.5, 5);
+            const crestMat = new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+            const crest = new THREE.Mesh(crestGeo, crestMat);
+            crest.position.set(0, 25, 0); 
+            tsunamiGroup.add(crest);
+
+            tsunamiGroup.position.set(0, 0, -WORLD_SIZE - 50);
+            scene.add(tsunamiGroup);
+            tsunami = { mesh: tsunamiGroup, particles: [] };
+
+            // Spray particles group
+            const sprayGroup = new THREE.Group();
+            scene.add(sprayGroup);
+            tsunami.sprayGroup = sprayGroup;
+
+            // Shops (Stalls)
+            const shopTypes = [
+                { name: "SPEED", color: 0x00a2ff, x: 25, z: 30 },
+                { name: "REBIRTH", color: 0xffaa00, x: -25, z: -30 },
+                { name: "VIP", color: 0xffff00, x: 35, z: -40 },
+                { name: "SHOP", color: 0x00ff00, x: -35, z: 40 }
+            ];
+            
+            shopTypes.forEach(st => {
+                const sGroup = new THREE.Group();
+                
+                // Base / Counter
+                const baseGeo = new THREE.BoxGeometry(6, 1.5, 4);
+                const baseMat = new THREE.MeshLambertMaterial({ color: 0x8b4513 }); // Wood
+                const base = new THREE.Mesh(baseGeo, baseMat);
+                base.position.y = 0.75;
+                sGroup.add(base);
+
+                // Pillars
+                const pillGeo = new THREE.BoxGeometry(0.3, 5, 0.3);
+                const pillMat = new THREE.MeshLambertMaterial({ color: 0x5a2d0c });
+                for(let i=0; i<4; i++) {
+                    const p = new THREE.Mesh(pillGeo, pillMat);
+                    p.position.set(i % 2 === 0 ? -2.7 : 2.7, 2.5, i < 2 ? -1.7 : 1.7);
+                    sGroup.add(p);
+                }
+
+                // Roof (Slanted Fabric style)
+                const roofGeo = new THREE.BoxGeometry(7, 0.5, 5);
+                const roofMat = new THREE.MeshLambertMaterial({ color: st.color });
+                const roof = new THREE.Mesh(roofGeo, roofMat);
+                roof.position.y = 5;
+                roof.rotation.x = Math.PI / 12;
+                sGroup.add(roof);
+
+                // Sign / Name Label (using Canvas)
+                const signCanvas = document.createElement('canvas');
+                signCanvas.width = 256;
+                signCanvas.height = 128;
+                const signCtx = signCanvas.getContext('2d');
+                signCtx.fillStyle = 'rgba(0,0,0,0.8)';
+                signCtx.fillRect(0, 0, 256, 128);
+                signCtx.fillStyle = 'white';
+                signCtx.font = 'bold 60px Arial';
+                signCtx.textAlign = 'center';
+                signCtx.fillText(st.name, 128, 85);
+                const signTex = new THREE.CanvasTexture(signCanvas);
+                const signMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(4, 2),
+                    new THREE.MeshBasicMaterial({ map: signTex, transparent: true })
+                );
+                signMesh.position.set(0, 6, 2.2);
+                sGroup.add(signMesh);
+                
+                sGroup.position.set(st.x, 0, st.z);
+                sGroup.rotation.y = Math.atan2(st.x, st.z) + Math.PI; // Face center
+                scene.add(sGroup);
+                shops.push(sGroup);
+            });
+
+            // Holes (Safe Zones) - Compact lines covering path
+            const holeGeo = new THREE.CylinderGeometry(4, 4, 0.1, 32);
+            const holeMat = new THREE.MeshPhongMaterial({ color: 0x112211 });
+            const boundaryZs = [15, 40, 75, -15, -40, -75];
+            
+            boundaryZs.forEach(bz => {
+                for(let i = -8; i <= 8; i++) {
+                    const mesh = new THREE.Mesh(holeGeo, holeMat);
+                    mesh.position.set(i * 14, 0.05, bz); // More spacing, no overlap
+                    scene.add(mesh);
+                    holes.push(mesh);
+                }
+            });
+
+            // Initial spawning
+            for(let i=0; i<60; i++) spawnBrainrot();
+
+            window.addEventListener('resize', onWindowResize);
+            document.getElementById('startBtn').onclick = startGame;
+            document.getElementById('retryBtn').onclick = startGame;
+            window.onkeydown = (e) => keys[e.code] = true;
+            window.onkeyup = (e) => keys[e.code] = false;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function spawnBrainrot() {
+            // Pick a rarity/section
+            const rarity = RARITIES[Math.floor(Math.random() * RARITIES.length)];
+            const size = 0.8;
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const mat = new THREE.MeshPhongMaterial({ 
+                color: rarity.color, 
+                emissive: rarity.color, 
+                emissiveIntensity: 0.5 
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rarity = rarity;
+            
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const z = side * (rarity.zMin + Math.random() * (rarity.zMax - rarity.zMin));
+            const x = (Math.random() - 0.5) * 200;
+
+            mesh.position.set(x, size/2 + 0.5, z);
+            mesh.castShadow = true;
+            scene.add(mesh);
+            brainrots.push(mesh);
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            gold = 0; round = 1; lives = 5;
+            document.getElementById('gold-value').innerText = gold;
+            document.getElementById('round-value').innerText = round;
+            document.getElementById('lives-value').innerText = lives;
+            document.getElementById('inventory-display').innerText = "";
+            player.carrying = null;
+            player.speedMult = 1;
+
+            // Show teleport msg
+            const tMsg = document.getElementById('teleport-msg');
+            tMsg.style.display = 'block';
+            setTimeout(() => { tMsg.style.display = 'none'; }, 3000);
+            
+            playerGroup.position.set(0,0,0);
+            tsunami.mesh.position.z = -WORLD_SIZE - 50;
+            tsunamiTimer = 0;
+            tsunamiActive = false;
+            gameRunning = true;
+            loop();
+        }
+
+        function triggerGameOver() {
+            gameRunning = false;
+            document.getElementById('final-score').innerText = `You collected ${gold} gold and survived ${round} waves!`;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        function update() {
+            if (!gameRunning) return;
+
+            // Player Movement
+            const moveSpeed = player.speed * player.speedMult;
+            if (keys['KeyW'] || keys['ArrowUp']) playerGroup.position.z -= moveSpeed;
+            if (keys['KeyS'] || keys['ArrowDown']) playerGroup.position.z += moveSpeed;
+            if (keys['KeyA'] || keys['ArrowLeft']) playerGroup.position.x -= moveSpeed;
+            if (keys['KeyD'] || keys['ArrowRight']) playerGroup.position.x += moveSpeed;
+
+            // Animation
+            const isMoving = keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'] || 
+                             keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'];
+            
+            if (isMoving) {
+                walkCycle += 0.2 * player.speedMult;
+                player.lLeg.rotation.x = Math.sin(walkCycle) * 0.5;
+                player.rLeg.rotation.x = Math.cos(walkCycle) * 0.5;
+            } else {
+                player.lLeg.rotation.x = 0;
+                player.rLeg.rotation.x = 0;
+            }
+
+            // Shop Interaction
+            let nearShop = false;
+            shops.forEach(s => {
+                const dist = playerGroup.position.distanceTo(s.position);
+                if (dist < 8) nearShop = true;
+            });
+
+            if (nearShop) {
+                document.getElementById('shop-prompt').style.display = 'block';
+                if (keys['KeyE'] && gold >= 500 && player.speedMult === 1) {
+                    gold -= 500;
+                    player.speedMult = 2;
+                    document.getElementById('gold-value').innerText = gold;
+                    keys['KeyE'] = false; // debounce
+                }
+                if (keys['KeyQ'] && gold >= 1000) {
+                    gold -= 1000;
+                    lives++;
+                    document.getElementById('gold-value').innerText = gold;
+                    document.getElementById('lives-value').innerText = lives;
+                    keys['KeyQ'] = false; // debounce
+                }
+            } else {
+                document.getElementById('shop-prompt').style.display = 'none';
+            }
+
+            playerGroup.position.z = Math.max(-145, Math.min(145, playerGroup.position.z));
+
+            // Region Tracking
+            const currentZ = Math.abs(playerGroup.position.z);
+            let currentRegion = RARITIES[0];
+            for (let r of RARITIES) {
+                if (currentZ >= r.zMin && currentZ <= r.zMax) {
+                    currentRegion = r;
+                    break;
+                }
+            }
+            const regionSpan = document.querySelector('#region-display span');
+            regionSpan.innerText = currentRegion.name;
+            regionSpan.parentElement.style.borderLeftColor = `#${currentRegion.color.toString(16).padStart(6, '0')}`;
+            regionSpan.style.color = `#${currentRegion.color.toString(16).padStart(6, '0')}`;
+
+            // Environment Safety Logic (Holes or Depot)
+            let inSafeZone = false;
+            
+            // Check Depot (Base)
+            let distToBase = playerGroup.position.distanceTo(new THREE.Vector3(0, 0, 0));
+            if (distToBase < 4.5) inSafeZone = true;
+
+            // Check Holes
+            if (!inSafeZone) {
+                holes.forEach(h => {
+                    const d = playerGroup.position.distanceTo(new THREE.Vector3(h.position.x, 0, h.position.z));
+                    if (d < 4.5) inSafeZone = true;
+                });
+            }
+
+            if (inSafeZone) {
+                // Visual feedback for being underground (if in hole) or just safe indicator
+                const inHole = holes.some(h => playerGroup.position.distanceTo(new THREE.Vector3(h.position.x, 0, h.position.z)) < 4.5);
+                if (inHole) {
+                    playerGroup.position.y = THREE.MathUtils.lerp(playerGroup.position.y, -2.5, 0.1);
+                    document.getElementById('safe-status').innerText = "UNDERGROUND - SAFE!";
+                } else {
+                    playerGroup.position.y = THREE.MathUtils.lerp(playerGroup.position.y, 0, 0.1);
+                    document.getElementById('safe-status').innerText = "INSIDE DEPOT - SAFE!";
+                }
+                document.getElementById('safe-status').style.display = 'block';
+                player.isSafe = true;
+            } else {
+                playerGroup.position.y = THREE.MathUtils.lerp(playerGroup.position.y, 0, 0.1);
+                document.getElementById('safe-status').style.display = 'none';
+                player.isSafe = false;
+            }
+
+            // Collection Logic
+            let nearAnyItem = false;
+            if (!player.carrying) {
+                for (let i = brainrots.length - 1; i >= 0; i--) {
+                    const b = brainrots[i];
+                    const dist = playerGroup.position.distanceTo(b.position);
+                    
+                    if (dist < 4) {
+                        nearAnyItem = true;
+                        if (harvestingItem === b) {
+                            harvestTimer++;
+                            // Update UI
+                            const cycle = 201.06;
+                            const offset = cycle - (harvestTimer / HARVEST_TIME) * cycle;
+                            document.getElementById('harvest-circle').style.strokeDashoffset = offset;
+                            document.getElementById('harvest-ui').style.display = 'flex';
+                            
+                            if (harvestTimer >= HARVEST_TIME) {
+                                player.carrying = b.rarity;
+                                scene.remove(b);
+                                brainrots.splice(i, 1);
+                                // Visual feedback
+                                playerGroup.children[0].material.emissive.setHex(b.rarity.color);
+                                playerGroup.children[0].material.emissiveIntensity = 0.5;
+                                document.getElementById('inventory-display').innerText = `Carrying: ${b.rarity.name}`;
+                                document.getElementById('inventory-display').style.color = `#${b.rarity.color.toString(16).padStart(6, '0')}`;
+                                
+                                // Success! Reset harvest
+                                harvestingItem = null;
+                                harvestTimer = 0;
+                                document.getElementById('harvest-ui').style.display = 'none';
+                            }
+                        } else if (!harvestingItem) {
+                            // Start harvesting new item
+                            harvestingItem = b;
+                            harvestTimer = 0;
+                        }
+                        break; // Only harvest one at a time
+                    }
+                }
+            }
+
+            if (!nearAnyItem) {
+                harvestingItem = null;
+                harvestTimer = 0;
+                document.getElementById('harvest-ui').style.display = 'none';
+            }
+
+            // Camera / Controls follow
+            controls.target.lerp(playerGroup.position, 0.1);
+            controls.update();
+
+            // Delivery
+            distToBase = playerGroup.position.distanceTo(new THREE.Vector3(0, 0, 0));
+            if (player.carrying && distToBase < 6) {
+                gold += player.carrying.val;
+                document.getElementById('gold-value').innerText = gold;
+                player.carrying = null;
+                playerGroup.children[0].material.emissiveIntensity = 0;
+                document.getElementById('inventory-display').innerText = "";
+                spawnBrainrot(); // Replace
+            }
+
+            // Tsunami logic
+            tsunamiTimer++;
+            const warningVal = TSUNAMI_INTERVAL - 150;
+            if (tsunamiTimer > warningVal && tsunamiTimer < TSUNAMI_INTERVAL) {
+                document.getElementById('warning').style.display = 'block';
+            } else {
+                document.getElementById('warning').style.display = 'none';
+            }
+
+            if (tsunamiTimer >= TSUNAMI_INTERVAL) {
+                tsunamiActive = true;
+                tsunami.mesh.position.z += 0.5 + (round * 0.05); // Move from back to front
+                
+                // Add spray particles
+                if (Math.random() < 0.8) {
+                    const pGeo = new THREE.SphereGeometry(Math.random() * 0.5 + 0.2);
+                    const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+                    const p = new THREE.Mesh(pGeo, pMat);
+                    // Spawn spray along the wave face (X axis)
+                    p.position.set((Math.random() - 0.5) * 300, 0, tsunami.mesh.position.z + 10);
+                    p.vx = (Math.random() - 0.5) * 0.2;
+                    p.vy = Math.random() * 0.5;
+                    p.vz = (Math.random() + 0.5) * 0.5;
+                    p.life = 1.0;
+                    tsunami.sprayGroup.add(p);
+                    tsunami.particles.push(p);
+                }
+
+                // Update spray
+                for (let i = tsunami.particles.length - 1; i >= 0; i--) {
+                    const p = tsunami.particles[i];
+                    p.position.x += p.vx;
+                    p.position.y += p.vy;
+                    p.position.z += p.vz;
+                    p.vy -= 0.02; // Gravity
+                    p.life -= 0.02;
+                    p.material.opacity = p.life;
+                    if (p.life <= 0) {
+                        tsunami.sprayGroup.remove(p);
+                        tsunami.particles.splice(i, 1);
+                    }
+                }
+                
+                // Collision (Check Z instead of X)
+                if (!player.isSafe && Math.abs(playerGroup.position.z - tsunami.mesh.position.z) < 20) {
+                    lives--;
+                    document.getElementById('lives-value').innerText = lives;
+                    
+                    if (lives <= 0) {
+                        triggerGameOver();
+                    } else {
+                        // Respawn player at base
+                        playerGroup.position.set(0, 0, 0);
+                        player.carrying = null;
+                        playerGroup.children[0].material.emissiveIntensity = 0;
+                        document.getElementById('inventory-display').innerText = "";
+                        // Reset tsunami 
+                        tsunami.mesh.position.z = -WORLD_SIZE - 100; 
+                    }
+                }
+
+                if (tsunami.mesh.position.z > WORLD_SIZE + 100) {
+                    tsunamiActive = false;
+                    tsunamiTimer = 0;
+                    tsunami.mesh.position.z = -WORLD_SIZE - 50;
+                    round++;
+                    document.getElementById('round-value').innerText = round;
+                    // Respawn more
+                    for(let i=0; i<5; i++) spawnBrainrot();
+                }
+            }
+        }
+
+        function loop() {
+            if (!gameRunning) return;
+            update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(loop);
+        }
+
+        init();
+    </script>
+</body>
+</html>
