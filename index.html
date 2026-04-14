@@ -100,7 +100,7 @@
             position: absolute;
             top: 100px;
             right: 30px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             padding: 10px 20px;
             border-radius: 10px;
             border-left: 5px solid #00f2ff;
@@ -108,6 +108,7 @@
             text-transform: uppercase;
             letter-spacing: 2px;
             z-index: 100;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
         #harvest-ui {
@@ -472,16 +473,7 @@
             depotGroup.add(door);
 
             // Depot Sign
-            const signGeo = new THREE.BoxGeometry(5, 1.5, 0.5);
-            const signMat = new THREE.MeshPhongMaterial({ color: 0xffc107 });
-            const sign = new THREE.Mesh(signGeo, signMat);
-            sign.position.set(0, 5.5, 4);
-            depotGroup.add(sign);
-
-            depotGroup.position.set(0, 0, 0);
-            scene.add(depotGroup);
-
-            // Player (Roblox Style)
+            const signGeo = new THREE.BoxGe            // Player (Roblox Style)
             playerGroup = new THREE.Group();
             
             // Body (Torso)
@@ -500,25 +492,28 @@
             head.castShadow = true;
             playerGroup.add(head);
 
-            // Eyes (Simple Roblox eyes)
-            const eyeGeo = new THREE.CircleGeometry(0.12, 16);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            // Eyes / Face Rendering
+            const faceCanvas = document.createElement('canvas');
+            faceCanvas.width = 128;
+            faceCanvas.height = 128;
+            const faceCtx = faceCanvas.getContext('2d');
+            faceCtx.fillStyle = 'rgba(0,0,0,0)'; // Transparent
+            faceCtx.fillRect(0,0,128,128);
+            faceCtx.fillStyle = '#000';
+            // Eyes
+            faceCtx.beginPath(); faceCtx.arc(35, 45, 10, 0, Math.PI*2); faceCtx.fill();
+            faceCtx.beginPath(); faceCtx.arc(93, 45, 10, 0, Math.PI*2); faceCtx.fill();
+            // Smile
+            faceCtx.lineWidth = 4;
+            faceCtx.beginPath(); faceCtx.arc(64, 80, 25, 0.1, Math.PI-0.1); faceCtx.stroke();
             
-            const lEye = new THREE.Mesh(eyeGeo, eyeMat);
-            lEye.position.set(-0.2, 2.55, 0.41);
-            playerGroup.add(lEye);
-
-            const rEye = new THREE.Mesh(eyeGeo, eyeMat);
-            rEye.position.set(0.2, 2.55, 0.41);
-            playerGroup.add(rEye);
-
-            // Mouth
-            const mouthGeo = new THREE.TorusGeometry(0.1, 0.03, 8, 16, Math.PI);
-            const mouthMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-            mouth.position.set(0, 2.3, 0.41);
-            mouth.rotation.x = Math.PI;
-            playerGroup.add(mouth);
+            const faceTex = new THREE.CanvasTexture(faceCanvas);
+            const facePlate = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.75, 0.75),
+                new THREE.MeshBasicMaterial({ map: faceTex, transparent: true })
+            );
+            facePlate.position.set(0, 2.5, 0.41);
+            playerGroup.add(facePlate);
 
             // Cap (Hat)
             const capBaseGeo = new THREE.BoxGeometry(0.9, 0.3, 0.9);
@@ -527,10 +522,34 @@
             capBase.position.y = 2.95;
             playerGroup.add(capBase);
 
-            const visorGeo = new THREE.BoxGeometry(0.9, 0.05, 0.6);
+            const visorGeo = new THREE.BoxGeometry(0.9, 0.1, 0.6);
             const visor = new THREE.Mesh(visorGeo, capMat);
             visor.position.set(0, 2.85, 0.6);
             playerGroup.add(visor);
+
+            // Nametag
+            function createNametag(text, scale = 1.0) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.roundRect(0, 0, 512, 128, 20);
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 80px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, 256, 90);
+                const tex = new THREE.CanvasTexture(canvas);
+                const mesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3 * scale, 0.75 * scale),
+                    new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
+                );
+                return mesh;
+            }
+            const nameTag = createNametag("GreenBulb");
+            nameTag.position.set(0, 4.0, 0);
+            playerGroup.add(nameTag);
 
             // Legs (Shorts)
             const legGeo = new THREE.BoxGeometry(0.5, 0.8, 0.5);
@@ -557,7 +576,7 @@
             rLeg.position.set(0.35, 0.4, 0);
             playerGroup.add(rLeg);
 
-            // Rainbow Item (like the image)
+            // Rainbow Item
             const rainbowGroup = new THREE.Group();
             const rainbowColors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082, 0x8f00ff];
             rainbowColors.forEach((color, i) => {
@@ -568,6 +587,17 @@
                 rainbowGroup.add(ring);
             });
             rainbowGroup.position.set(0.8, 1.2, 0);
+            playerGroup.add(rainbowGroup);
+
+            scene.add(playerGroup);
+            player = { 
+                mesh: playerGroup, 
+                vx: 0, vz: 0, 
+                speed: 0.15, speedMult: 1, 
+                carrying: false,
+                lLeg: lLeg, rLeg: rLeg 
+            };
+0.8, 1.2, 0);
             playerGroup.add(rainbowGroup);
 
             scene.add(playerGroup);
@@ -647,24 +677,10 @@
                 roof.rotation.x = Math.PI / 12;
                 sGroup.add(roof);
 
-                // Sign / Name Label (using Canvas)
-                const signCanvas = document.createElement('canvas');
-                signCanvas.width = 256;
-                signCanvas.height = 128;
-                const signCtx = signCanvas.getContext('2d');
-                signCtx.fillStyle = 'rgba(0,0,0,0.8)';
-                signCtx.fillRect(0, 0, 256, 128);
-                signCtx.fillStyle = 'white';
-                signCtx.font = 'bold 60px Arial';
-                signCtx.textAlign = 'center';
-                signCtx.fillText(st.name, 128, 85);
-                const signTex = new THREE.CanvasTexture(signCanvas);
-                const signMesh = new THREE.Mesh(
-                    new THREE.PlaneGeometry(4, 2),
-                    new THREE.MeshBasicMaterial({ map: signTex, transparent: true })
-                );
-                signMesh.position.set(0, 6, 2.2);
-                sGroup.add(signMesh);
+                // Floating Sign Label (Aesthetic like image)
+                const floatingTag = createNametag(st.name, 1.5);
+                floatingTag.position.set(0, 8.0, 0);
+                sGroup.add(floatingTag);
                 
                 sGroup.position.set(st.x, 0, st.z);
                 sGroup.rotation.y = Math.atan2(st.x, st.z) + Math.PI; // Face center
